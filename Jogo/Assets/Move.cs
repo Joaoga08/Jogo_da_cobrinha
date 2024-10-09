@@ -59,6 +59,23 @@ public class SnakeMove : MonoBehaviour
 
     }
 
-
+    public void Grow()
+{
+    // Cria um novo segmento da cobra
+    GameObject segment = Instantiate(snakeSegmentPrefab);
+    segment.transform.position = segments[segments.Count - 1].position; // Posiciona na última cauda
+    segments.Add(segment.transform); // Adiciona o novo segmento à lista
+}
+void GameOver()
+{
+}
+private void OnTriggerEnter2D(Collider2D collision)
+{
+    if (collision.CompareTag("Apple"))
+    {
+        Grow();
+        Destroy(collision.gameObject); 
+    }
+}
 
 }
