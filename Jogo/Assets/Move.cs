@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class SnakeMove : MonoBehaviour
@@ -12,7 +13,7 @@ public class SnakeMove : MonoBehaviour
 
     void Start()
     {
-        segments.Add(transform); // Adiciona a cabeça à lista de segmentos
+        segments.Add(transform);    
     }
 
     void Update()
