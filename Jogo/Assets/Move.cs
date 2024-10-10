@@ -1,82 +1,142 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class SnakeMove : MonoBehaviour
 {
-    public GameObject snakeSegmentPrefab;
-    public float moveSpeed = 1f;
-    private Vector2 direction;
-    private List<Transform> segments = new List<Transform>();
-    private float timer;
+    public Transform segmentPrefab;
+    public Vector2Int direction;
+    public float speed = 20f;
+    public float speedMultiplier = 1f;
+    public int initialSize = 4;
+    public bool moveThroughWalls = false;
 
-    void Start()
+    private List<Transform> segments = new List<Transform>();
+   
+    private Vector2Int input;
+    private float nextUpdate;
+
+    private void Start()
     {
-        segments.Add(transform);    
+        ResetState();
     }
 
-    void Update()
+    private void Update()
     {
         if (Input.GetKeyDown(KeyCode.UpArrow))
-            direction = Vector2.up;
-        else if (Input.GetKeyDown(KeyCode.DownArrow))
-            direction = Vector2.down;
-        else if (Input.GetKeyDown(KeyCode.LeftArrow))
-            direction = Vector2.left;
-        else if (Input.GetKeyDown(KeyCode.RightArrow))
-            direction = Vector2.right;
-
-
-        timer += Time.deltaTime;
-        if (timer >= moveSpeed)
         {
-            Move();
-            timer = 0;
+            direction = Vector2Int.up;
+        }
+        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            direction = Vector2Int.down;
+        }
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            direction = Vector2Int.right;
+        }
+        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            direction = Vector2Int.left;
         }
     }
 
-    void Move()
+    private void FixedUpdate()
     {
-        Vector3 previousPosition = transform.position;
-        // Move a cabeça da cobra
-        transform.position += (Vector3)direction;
-
-        // Move a cauda
-        for (int i = 1; i < segments.Count; i++)
+        if (Time.time < nextUpdate)
         {
-            Vector3 tempPosition = segments[i].position;
-            segments[i].position = previousPosition;
-            previousPosition = tempPosition;
+            return;
         }
-        // Checa colisão com a cauda
+        if (input != Vector2Int.zero)
+        {
+            direction = input;
+        }
+       
+        for (int i = segments.Count - 1; i > 0; i--)
+        {
+            segments[i].position = segments[i - 1].position;
+        }
+        
+        int x = Mathf.RoundToInt(transform.position.x) + direction.x;
+        int y = Mathf.RoundToInt(transform.position.y) + direction.y;
+        transform.position = new Vector2(x, y);
+    
+        nextUpdate = Time.time + (1f / (speed * speedMultiplier));
+    }
+    public void Grow()
+    {
+        Transform segment = Instantiate(segmentPrefab);
+        segment.position = segments[segments.Count - 1].position;
+        segments.Add(segment);
+    }
+
+    public void ResetState()
+    {
+        direction = Vector2Int.right;
+        transform.position = Vector3.zero;
+
+       
         for (int i = 1; i < segments.Count; i++)
         {
-            if (transform.position == segments[i].position)
+            Destroy(segments[i].gameObject);
+        }
+
+       
+        segments.Clear();
+        segments.Add(transform);
+
+       
+        for (int i = 0; i < initialSize - 1; i++)
+        {
+            Grow();
+        }
+    }
+    public bool Occupies(int x, int y)
+    {
+        foreach (Transform segment in segments)
+        {
+            if (Mathf.RoundToInt(segment.position.x) == x &&
+                Mathf.RoundToInt(segment.position.y) == y)
             {
-                GameOver();
+                return true;
             }
         }
 
+        return false;
     }
 
-    public void Grow()
-{
-    // Cria um novo segmento da cobra
-    GameObject segment = Instantiate(snakeSegmentPrefab);
-    segment.transform.position = segments[segments.Count - 1].position; // Posiciona na última cauda
-    segments.Add(segment.transform); // Adiciona o novo segmento à lista
-}
-void GameOver()
-{
-}
-private void OnTriggerEnter2D(Collider2D collision)
-{
-    if (collision.CompareTag("Apple"))
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        Grow();
-        Destroy(collision.gameObject); 
+        if (other.gameObject.CompareTag("Apple"))
+        {
+            Grow();
+        }
+        else if (other.gameObject.CompareTag("Apple"))
+        {
+            if (moveThroughWalls)
+            {
+                Teletransport(other.transform);
+            }
+            else
+            {
+                ResetState();
+            }
+        }
     }
-}
+    private void Teletransport(Transform wall)
+    {
+        Vector3 position = transform.position;
+
+        if (direction.x != 0f)
+        {
+            position.x = Mathf.RoundToInt(-wall.position.x + direction.x);
+        }
+        else if (direction.y != 0f)
+        {
+            position.y = Mathf.RoundToInt(-wall.position.y + direction.y);
+        }
+
+        transform.position = position;
+    }
 
 }
